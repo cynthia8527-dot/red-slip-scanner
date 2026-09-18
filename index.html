@@ -15,6 +15,7 @@
     .camera-controls{display:flex;align-items:center;justify-content:center;gap:18px;min-height:108px}.capture{width:76px;height:76px;border-radius:50%;border:6px solid #fff;background:var(--accent);box-shadow:0 0 0 3px #ffffff22;flex:none}.capture:active{transform:scale(.94)}.done-camera{display:none;min-width:108px}.camera-running .done-camera{display:block}.camera-caption{text-align:center;color:var(--muted);font-size:.86rem;margin:-8px 0 14px}.camera-running .camera-caption{color:var(--ok)}#camera{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
     .toolbar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.btn{border:1px solid var(--line);color:var(--text);background:var(--panel);padding:12px 8px;border-radius:14px;font-weight:650}.btn:disabled{opacity:.38;cursor:not-allowed}.btn.danger{color:#ff9aa1}.btn.primary{background:var(--accent);border-color:var(--accent)}
     .settings{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px}.settings-row{display:flex;align-items:center;justify-content:space-between;gap:12px}.seg{display:flex;background:#101116;border-radius:12px;padding:3px}.seg button{border:0;background:transparent;color:var(--muted);padding:8px 12px;border-radius:9px}.seg button.active{background:var(--panel2);color:white}.hint{font-size:.8rem;color:var(--muted);margin:10px 0 0;line-height:1.5}
+    .auto-row{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}.auto-copy strong{display:block}.auto-copy span{display:block;color:var(--muted);font-size:.82rem;margin-top:3px}.toggle{min-width:58px;border:1px solid var(--line);border-radius:999px;padding:8px 12px;background:#101116;color:var(--muted);font-weight:750}.toggle.active{border-color:#67d69a66;background:#193c2b;color:#8bf0b6}
     .pages-head{display:flex;justify-content:space-between;align-items:end;margin:24px 2px 10px}.pages-head h2{font-size:1rem;margin:0}.pages-head span{color:var(--muted);font-size:.8rem}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.thumb{position:relative;aspect-ratio:3/4;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}.thumb img{width:100%;height:100%;object-fit:cover}.thumb span{position:absolute;bottom:6px;left:6px;background:#101116d9;border-radius:999px;padding:3px 7px;font-size:.75rem}.thumb button{position:absolute;top:5px;right:5px;width:29px;height:29px;border:0;border-radius:50%;background:#101116d9;color:white}.empty-list{grid-column:1/-1;text-align:center;color:var(--muted);padding:24px 0;font-size:.9rem}
     .export{position:fixed;z-index:10;bottom:0;left:0;right:0;background:linear-gradient(transparent,#101116 18%);padding:22px max(16px,calc((100vw - 720px)/2 + 16px)) max(14px,env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr;gap:10px}.export .btn{padding:15px 10px}.toast{position:fixed;left:50%;bottom:95px;transform:translateX(-50%) translateY(20px);opacity:0;background:#f7f7fa;color:#17191f;padding:10px 14px;border-radius:999px;font-weight:700;font-size:.85rem;transition:.2s;z-index:30;pointer-events:none}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
     .busy{position:fixed;inset:0;background:#08090dcc;display:none;place-items:center;z-index:40;text-align:center}.busy.show{display:grid}.spinner{width:42px;height:42px;border:4px solid #ffffff33;border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:auto auto 12px}@keyframes spin{to{transform:rotate(360deg)}}
@@ -35,6 +36,7 @@
   </div>
   <section class="settings">
     <div class="settings-row"><strong>影像效果</strong><div class="seg" role="group" aria-label="影像效果"><button data-mode="color">原色</button><button class="active" data-mode="scan">掃描</button><button data-mode="bw">黑白</button></div></div>
+    <div class="settings-row auto-row"><div class="auto-copy"><strong>自動拍照</strong><span>綠框穩定約 1 秒後拍攝</span></div><button id="autoCapture" class="toggle active" role="switch" aria-checked="true">已開</button></div>
     <p class="hint">偵測到紙張時會顯示綠色外框並自動拉正；找不到才依黃色虛線框裁切。影像效果只套用在接下來拍攝的照片。</p>
   </section>
   <div class="pages-head"><h2>這一批</h2><span>點右上角可刪單張</span></div><section id="grid" class="grid"><div class="empty-list">拍第一張後會顯示在這裡</div></section>
@@ -42,10 +44,11 @@
 <footer class="export"><button id="zipBtn" class="btn" disabled>下載 JPG 壓縮檔</button><button id="pdfBtn" class="btn primary" disabled>下載 PDF</button></footer>
 <div id="toast" class="toast"></div><div id="busy" class="busy"><div><div class="spinner"></div><strong id="busyText">處理中…</strong></div></div>
 <script>
-const $=s=>document.querySelector(s), pages=[]; let mode='scan', pickerMode='camera', liveStream=null, captureQueue=Promise.resolve(), pendingCaptures=0, detectTimer=null;
-const camera=$('#camera'), viewer=$('#viewer'), preview=$('#preview'), live=$('#live'), guide=$('#scanGuide'), overlay=$('#detectOverlay'), grid=$('#grid'), busy=$('#busy'), busyText=$('#busyText'), controls=$('#cameraControls'), cameraCaption=$('#cameraCaption');live.className='fx-scan';
-$('#shoot').onclick=()=>liveStream?captureLive():startLiveCamera();
+const $=s=>document.querySelector(s), pages=[]; let mode='scan', pickerMode='camera', liveStream=null, captureQueue=Promise.resolve(), pendingCaptures=0, detectTimer=null, stableFrames=0, previousQuad=null, lastDetectedQuad=null, lastShotQuad=null, autoArmed=true, captureInProgress=false;
+const camera=$('#camera'), viewer=$('#viewer'), preview=$('#preview'), live=$('#live'), guide=$('#scanGuide'), overlay=$('#detectOverlay'), grid=$('#grid'), busy=$('#busy'), busyText=$('#busyText'), controls=$('#cameraControls'), cameraCaption=$('#cameraCaption'), autoCapture=$('#autoCapture');live.className='fx-scan';
+$('#shoot').onclick=()=>liveStream?captureLive(false):startLiveCamera();
 $('#doneCamera').onclick=stopLiveCamera;
+autoCapture.onclick=()=>{const on=!autoCapture.classList.contains('active');autoCapture.classList.toggle('active',on);autoCapture.setAttribute('aria-checked',String(on));autoCapture.textContent=on?'已開':'已關';resetAutoCapture();toast(on?'自動拍照已開啟':'自動拍照已關閉');if(liveStream)cameraCaption.textContent=on?'對準紙張，綠框穩定後會自動拍':'自動拍照已關閉，可按快門拍攝'};
 $('#importBtn').onclick=()=>{pickerMode='album';camera.setAttribute('multiple','');camera.removeAttribute('capture');camera.click()};
 document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.seg button').forEach(x=>x.classList.remove('active'));b.classList.add('active');mode=b.dataset.mode;live.className='fx-'+mode;toast('鏡頭預覽與之後拍攝：'+b.textContent)});
 camera.onchange=async()=>{const files=[...camera.files];camera.value='';if(!files.length)return;showBusy('處理 '+files.length+' 張…');for(let i=0;i<files.length;i++){busyText.textContent=`處理第 ${i+1}／${files.length} 張…`;try{pages.push(await processImage(files[i],mode));render()}catch(e){toast('有一張讀取失敗，沒有加入')}}hideBusy();toast(`已加入 ${files.length} 張`);if(pickerMode==='camera')setTimeout(()=>$('#shoot').focus(),50)};
@@ -53,22 +56,24 @@ async function startLiveCamera(){
   if(!navigator.mediaDevices?.getUserMedia){toast('這個瀏覽器不支援連拍鏡頭，請改用相簿加入');return}
   try{
     liveStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:2560}},audio:false});
-    live.srcObject=liveStream;await live.play();viewer.classList.add('live');controls.classList.add('camera-running');cameraCaption.textContent='正在尋找紙張四邊…';startDetection();
+    live.srcObject=liveStream;await live.play();viewer.classList.add('live');controls.classList.add('camera-running');cameraCaption.textContent=autoCapture.classList.contains('active')?'對準紙張，綠框穩定後會自動拍':'正在尋找紙張四邊…';startDetection();
   }catch(e){liveStream=null;toast(e?.name==='NotAllowedError'?'需要允許相機權限才能連拍':'無法開啟鏡頭，請改用相簿加入')}
 }
-async function captureLive(){
-  if(!liveStream||!live.videoWidth)return;
-  const canvas=captureVisibleFrame();
+async function captureLive(auto=false){
+  if(!liveStream||!live.videoWidth||captureInProgress)return;captureInProgress=true;
+  try{const canvas=captureVisibleFrame();if(autoCapture.classList.contains('active')){autoArmed=false;lastShotQuad=lastDetectedQuad?.map(p=>({...p}))||null;stableFrames=0;previousQuad=null}
   viewer.classList.remove('flash');void viewer.offsetWidth;viewer.classList.add('flash');setTimeout(()=>viewer.classList.remove('flash'),180);
-  const shot=await new Promise(res=>canvas.toBlob(res,'image/jpeg',.94));if(!shot)return;
-  pendingCaptures++;cameraCaption.textContent=`已拍 ${pages.length+pendingCaptures} 張，繼續換下一張`;
-  captureQueue=captureQueue.then(async()=>{try{const page=await processImage(shot,mode,true);pages.push(page);render();toast(page.detected?'已自動裁切並拉正':'紙邊不夠確定，已使用安全裁切')}catch(e){toast('有一張處理失敗，沒有加入')}finally{pendingCaptures--}});
+  const shot=await new Promise(res=>canvas.toBlob(res,'image/jpeg',.94));if(!shot)return;navigator.vibrate?.(35);
+  pendingCaptures++;cameraCaption.textContent=`已拍 ${pages.length+pendingCaptures} 張｜請換下一張`;
+  captureQueue=captureQueue.then(async()=>{try{const page=await processImage(shot,mode,true);pages.push(page);toast(auto?'已自動拍照':'已拍照')}catch(e){toast('有一張處理失敗，沒有加入')}finally{pendingCaptures--;render()}})}finally{captureInProgress=false}
 }
 function captureVisibleFrame(maxWidth=0){
   const vr=viewer.getBoundingClientRect(),vw=live.videoWidth,vh=live.videoHeight,scale=Math.max(vr.width/vw,vr.height/vh),sw=vr.width/scale,sh=vr.height/scale,sx=(vw-sw)/2,sy=(vh-sh)/2,outW=maxWidth?Math.min(maxWidth,Math.round(sw)):Math.round(sw),outH=Math.round(outW*vr.height/vr.width),c=document.createElement('canvas');c.width=outW;c.height=outH;c.getContext('2d').drawImage(live,sx,sy,sw,sh,0,0,outW,outH);return c
 }
-function startDetection(){stopDetection();const tick=()=>{if(!liveStream)return;const frame=captureVisibleFrame(320),quad=detectPaperQuad(frame),ctx=overlay.getContext('2d');overlay.width=frame.width;overlay.height=frame.height;ctx.clearRect(0,0,overlay.width,overlay.height);viewer.classList.toggle('paper-found',!!quad);if(quad){ctx.strokeStyle='#73f0a8';ctx.lineWidth=3;ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(quad[0].x,quad[0].y);for(let i=1;i<4;i++)ctx.lineTo(quad[i].x,quad[i].y);ctx.closePath();ctx.stroke();cameraCaption.textContent=`已找到紙邊｜已拍 ${pages.length+pendingCaptures} 張`}else cameraCaption.textContent=`把橫式單據放在黃色框附近｜已拍 ${pages.length+pendingCaptures} 張`;detectTimer=setTimeout(tick,420)};tick()}
-function stopDetection(){clearTimeout(detectTimer);detectTimer=null;const ctx=overlay.getContext('2d');ctx.clearRect(0,0,overlay.width,overlay.height)}
+function resetAutoCapture(){stableFrames=0;previousQuad=null;lastDetectedQuad=null;lastShotQuad=null;autoArmed=true;captureInProgress=false}
+function quadShift(a,b,diag){if(!a||!b)return Infinity;return a.reduce((n,p,i)=>n+dist(p,b[i]),0)/(4*diag)}
+function startDetection(){stopDetection();resetAutoCapture();const tick=()=>{if(!liveStream)return;const frame=captureVisibleFrame(320),quad=detectPaperQuad(frame),ctx=overlay.getContext('2d'),diag=Math.hypot(frame.width,frame.height),auto=autoCapture.classList.contains('active');lastDetectedQuad=quad;overlay.width=frame.width;overlay.height=frame.height;ctx.clearRect(0,0,overlay.width,overlay.height);viewer.classList.toggle('paper-found',!!quad);if(quad){ctx.strokeStyle='#73f0a8';ctx.lineWidth=3;ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(quad[0].x,quad[0].y);for(let i=1;i<4;i++)ctx.lineTo(quad[i].x,quad[i].y);ctx.closePath();ctx.stroke();if(auto){if(!autoArmed&&lastShotQuad&&quadShift(quad,lastShotQuad,diag)>.11){autoArmed=true;stableFrames=0;previousQuad=null}if(autoArmed){stableFrames=previousQuad&&quadShift(quad,previousQuad,diag)<.018?stableFrames+1:1;previousQuad=quad.map(p=>({...p}));const remaining=Math.max(0,3-stableFrames);cameraCaption.textContent=remaining?`保持不動，${remaining}…`:'正在自動拍照…';if(stableFrames>=3&&!captureInProgress){autoArmed=false;lastShotQuad=quad.map(p=>({...p}));captureLive(true)}}else cameraCaption.textContent=`已拍 ${pages.length+pendingCaptures} 張｜請換下一張`}else cameraCaption.textContent=`已找到紙邊｜按快門拍攝`}else{stableFrames=0;previousQuad=null;lastDetectedQuad=null;if(!autoArmed)autoArmed=true;cameraCaption.textContent=`把橫式單據放在黃色框附近｜已拍 ${pages.length+pendingCaptures} 張`}detectTimer=setTimeout(tick,420)};tick()}
+function stopDetection(){clearTimeout(detectTimer);detectTimer=null;resetAutoCapture();const ctx=overlay.getContext('2d');ctx.clearRect(0,0,overlay.width,overlay.height)}
 function stopLiveCamera(){
   stopDetection();if(liveStream)liveStream.getTracks().forEach(t=>t.stop());liveStream=null;live.srcObject=null;viewer.classList.remove('live','flash','paper-found');controls.classList.remove('camera-running');cameraCaption.textContent=pendingCaptures?'照片仍在背景處理，完成後會出現在下方':'按快門可再開啟連拍鏡頭';render();toast(`這批目前 ${pages.length+pendingCaptures} 張`);
 }
