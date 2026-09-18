@@ -56,7 +56,7 @@ camera.onchange=async()=>{const files=[...camera.files];camera.value='';if(!file
 async function startLiveCamera(){
   if(!navigator.mediaDevices?.getUserMedia){toast('這個瀏覽器不支援連拍鏡頭，請改用相簿加入');return}
   try{
-    liveStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},aspectRatio:{ideal:1.333333},width:{ideal:1920},height:{ideal:1440}},audio:false});
+    liveStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:2560}},audio:false});
     live.srcObject=liveStream;await live.play();document.body.classList.add('shooting');window.scrollTo({top:0,behavior:'smooth'});viewer.classList.add('live');controls.classList.add('camera-running');cameraCaption.textContent=autoCapture.classList.contains('active')?'對準紙張，綠框穩定後會自動拍':'正在尋找紙張四邊…';startDetection();
   }catch(e){liveStream=null;toast(e?.name==='NotAllowedError'?'需要允許相機權限才能連拍':'無法開啟鏡頭，請改用相簿加入')}
 }
@@ -69,7 +69,7 @@ async function captureLive(auto=false){
   captureQueue=captureQueue.then(async()=>{try{const page=await processImage(shot,mode,true);pages.push(page);toast(auto?'已自動拍照':'已拍照')}catch(e){toast('有一張處理失敗，沒有加入')}finally{pendingCaptures--;render()}})}finally{captureInProgress=false}
 }
 function captureVisibleFrame(maxWidth=0){
-  const vr=viewer.getBoundingClientRect(),vw=live.videoWidth,vh=live.videoHeight,scale=Math.max(vr.width/vw,vr.height/vh),sw=vr.width/scale,sh=vr.height/scale,sx=(vw-sw)/2,sy=(vh-sh)/2,outW=maxWidth?Math.min(maxWidth,Math.round(sw)):Math.round(sw),outH=Math.round(outW*vr.height/vr.width),c=document.createElement('canvas');c.width=outW;c.height=outH;c.getContext('2d').drawImage(live,sx,sy,sw,sh,0,0,outW,outH);return c
+  const vr=live.getBoundingClientRect(),vw=live.videoWidth,vh=live.videoHeight,scale=Math.max(vr.width/vw,vr.height/vh),sw=vr.width/scale,sh=vr.height/scale,sx=(vw-sw)/2,sy=(vh-sh)/2,outW=maxWidth?Math.min(maxWidth,Math.round(sw)):Math.round(sw),outH=Math.round(outW*vr.height/vr.width),c=document.createElement('canvas');c.width=outW;c.height=outH;c.getContext('2d').drawImage(live,sx,sy,sw,sh,0,0,outW,outH);return c
 }
 function resetAutoCapture(){stableFrames=0;missingFrames=0;previousQuad=null;lastDetectedQuad=null;lastShotQuad=null;autoArmed=true;captureInProgress=false}
 function quadShift(a,b,diag){if(!a||!b)return Infinity;return a.reduce((n,p,i)=>n+dist(p,b[i]),0)/(4*diag)}
