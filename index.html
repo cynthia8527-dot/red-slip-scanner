@@ -11,7 +11,7 @@
     :root{color-scheme:dark;--bg:#101116;--panel:#1a1c23;--panel2:#232630;--line:#343844;--text:#f6f7fb;--muted:#a9afbd;--accent:#ff5966;--accent2:#ff8790;--ok:#67d69a;--radius:20px}
     *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif;min-height:100dvh}button,input,select{font:inherit}button{cursor:pointer}
     .app{max-width:720px;margin:auto;padding:16px 16px 120px}.top{display:flex;align-items:center;justify-content:space-between;margin:2px 0 16px}.title{display:flex;align-items:center;gap:10px}.logo{width:36px;height:36px;border-radius:10px;background:var(--accent);display:grid;place-items:center;font-weight:900}.title h1{font-size:1.25rem;margin:0}.privacy{font-size:.8rem;color:var(--muted)}
-    .viewer{position:relative;background:#08090c;border:1px solid var(--line);border-radius:24px;overflow:hidden;aspect-ratio:3/4;display:grid;place-items:center}.viewer.empty:before{content:"紅單放平、拍完整一點\A按下方快門開啟連拍鏡頭";white-space:pre;text-align:center;color:var(--muted);line-height:1.8}.viewer.live:before{display:none}.viewer img,.viewer video{width:100%;height:100%;display:none}.viewer img{object-fit:contain}.viewer video{object-fit:cover;transition:filter .18s}.viewer video.fx-color{filter:none}.viewer video.fx-scan{filter:brightness(1.15) contrast(1.3) saturate(.72)}.viewer video.fx-bw{filter:grayscale(1) brightness(1.1) contrast(1.55)}.viewer.has:not(.live) img,.viewer.live video{display:block}.viewer.flash:after{content:"";position:absolute;inset:0;background:white;animation:flash .16s ease-out forwards;pointer-events:none}@keyframes flash{from{opacity:.7}to{opacity:0}}.count{position:absolute;top:12px;left:12px;background:#101116d9;border:1px solid #ffffff22;border-radius:999px;padding:7px 11px;font-size:.85rem;z-index:2}.badge{position:absolute;top:12px;right:12px;background:#101116d9;border:1px solid #ffffff22;border-radius:999px;padding:7px 11px;font-size:.8rem;color:var(--ok);z-index:2}
+    .viewer{position:relative;background:#08090c;border:1px solid var(--line);border-radius:24px;overflow:hidden;aspect-ratio:3/4;display:grid;place-items:center}.viewer.empty:before{content:"紅單放平、拍完整一點\A按下方快門開啟連拍鏡頭";white-space:pre;text-align:center;color:var(--muted);line-height:1.8}.viewer.live:before{display:none}.viewer img,.viewer video{width:100%;height:100%;display:none}.viewer img{object-fit:contain}.viewer video{object-fit:cover;transition:filter .18s}.viewer video.fx-color{filter:none}.viewer video.fx-scan{filter:brightness(1.15) contrast(1.3) saturate(.72)}.viewer video.fx-bw{filter:grayscale(1) brightness(1.1) contrast(1.55)}.viewer.has:not(.live) img,.viewer.live video{display:block}.scan-guide{display:none;position:absolute;inset:6% 7%;border:2px solid #73f0a8;border-radius:10px;box-shadow:0 0 0 999px #0000004d,inset 0 0 0 1px #0008;pointer-events:none;z-index:1}.viewer.live .scan-guide{display:block}.scan-guide span{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);white-space:nowrap;background:#101116cc;color:#d9ffe8;border-radius:999px;padding:6px 10px;font-size:.78rem}.viewer.flash:after{content:"";position:absolute;inset:0;background:white;animation:flash .16s ease-out forwards;pointer-events:none;z-index:3}@keyframes flash{from{opacity:.7}to{opacity:0}}.count{position:absolute;top:12px;left:12px;background:#101116d9;border:1px solid #ffffff22;border-radius:999px;padding:7px 11px;font-size:.85rem;z-index:2}.badge{position:absolute;top:12px;right:12px;background:#101116d9;border:1px solid #ffffff22;border-radius:999px;padding:7px 11px;font-size:.8rem;color:var(--ok);z-index:2}
     .camera-controls{display:flex;align-items:center;justify-content:center;gap:18px;min-height:108px}.capture{width:76px;height:76px;border-radius:50%;border:6px solid #fff;background:var(--accent);box-shadow:0 0 0 3px #ffffff22;flex:none}.capture:active{transform:scale(.94)}.done-camera{display:none;min-width:108px}.camera-running .done-camera{display:block}.camera-caption{text-align:center;color:var(--muted);font-size:.86rem;margin:-8px 0 14px}.camera-running .camera-caption{color:var(--ok)}#camera{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
     .toolbar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.btn{border:1px solid var(--line);color:var(--text);background:var(--panel);padding:12px 8px;border-radius:14px;font-weight:650}.btn:disabled{opacity:.38;cursor:not-allowed}.btn.danger{color:#ff9aa1}.btn.primary{background:var(--accent);border-color:var(--accent)}
     .settings{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px}.settings-row{display:flex;align-items:center;justify-content:space-between;gap:12px}.seg{display:flex;background:#101116;border-radius:12px;padding:3px}.seg button{border:0;background:transparent;color:var(--muted);padding:8px 12px;border-radius:9px}.seg button.active{background:var(--panel2);color:white}.hint{font-size:.8rem;color:var(--muted);margin:10px 0 0;line-height:1.5}
@@ -24,7 +24,7 @@
 <body>
 <main class="app">
   <header class="top"><div class="title"><div class="logo">單</div><h1>紅單掃描器</h1></div><div class="privacy">只在這台裝置處理</div></header>
-  <section id="viewer" class="viewer empty"><video id="live" autoplay playsinline muted></video><img id="preview" alt="最新掃描頁"><div id="counter" class="count">0 張</div><div class="badge">不會自動刪頁</div></section>
+  <section id="viewer" class="viewer empty"><video id="live" autoplay playsinline muted></video><img id="preview" alt="最新掃描頁"><div id="scanGuide" class="scan-guide"><span>紙張放進框內</span></div><div id="counter" class="count">0 張</div><div class="badge">不會自動刪頁</div></section>
   <input id="camera" type="file" accept="image/*" capture="environment" multiple>
   <div id="cameraControls" class="camera-controls"><button id="shoot" class="capture" aria-label="開啟連拍鏡頭或拍攝紅單"></button><button id="doneCamera" class="btn done-camera">完成拍攝</button></div>
   <div id="cameraCaption" class="camera-caption">按快門開啟鏡頭，之後可以連續拍攝</div>
@@ -35,7 +35,7 @@
   </div>
   <section class="settings">
     <div class="settings-row"><strong>影像效果</strong><div class="seg" role="group" aria-label="影像效果"><button data-mode="color">原色</button><button class="active" data-mode="scan">掃描</button><button data-mode="bw">黑白</button></div></div>
-    <p class="hint">切換後鏡頭會立即預覽；效果會套用在接下來拍攝的照片。已經拍好的照片不會跟著改變。</p>
+    <p class="hint">綠框外一定會裁掉，再嘗試微調紙邊。影像效果會套用在接下來拍攝的照片，已拍好的不會跟著改變。</p>
   </section>
   <div class="pages-head"><h2>這一批</h2><span>點右上角可刪單張</span></div><section id="grid" class="grid"><div class="empty-list">拍第一張後會顯示在這裡</div></section>
 </main>
@@ -43,7 +43,7 @@
 <div id="toast" class="toast"></div><div id="busy" class="busy"><div><div class="spinner"></div><strong id="busyText">處理中…</strong></div></div>
 <script>
 const $=s=>document.querySelector(s), pages=[]; let mode='scan', pickerMode='camera', liveStream=null, captureQueue=Promise.resolve(), pendingCaptures=0;
-const camera=$('#camera'), viewer=$('#viewer'), preview=$('#preview'), live=$('#live'), grid=$('#grid'), busy=$('#busy'), busyText=$('#busyText'), controls=$('#cameraControls'), cameraCaption=$('#cameraCaption');live.className='fx-scan';
+const camera=$('#camera'), viewer=$('#viewer'), preview=$('#preview'), live=$('#live'), guide=$('#scanGuide'), grid=$('#grid'), busy=$('#busy'), busyText=$('#busyText'), controls=$('#cameraControls'), cameraCaption=$('#cameraCaption');live.className='fx-scan';
 $('#shoot').onclick=()=>liveStream?captureLive():startLiveCamera();
 $('#doneCamera').onclick=stopLiveCamera;
 $('#importBtn').onclick=()=>{pickerMode='album';camera.setAttribute('multiple','');camera.removeAttribute('capture');camera.click()};
@@ -58,11 +58,15 @@ async function startLiveCamera(){
 }
 async function captureLive(){
   if(!liveStream||!live.videoWidth)return;
-  const canvas=document.createElement('canvas');canvas.width=live.videoWidth;canvas.height=live.videoHeight;canvas.getContext('2d').drawImage(live,0,0);
+  const crop=guideCrop(),canvas=document.createElement('canvas');canvas.width=Math.round(crop.w);canvas.height=Math.round(crop.h);canvas.getContext('2d').drawImage(live,crop.x,crop.y,crop.w,crop.h,0,0,canvas.width,canvas.height);
   viewer.classList.remove('flash');void viewer.offsetWidth;viewer.classList.add('flash');setTimeout(()=>viewer.classList.remove('flash'),180);
   const shot=await new Promise(res=>canvas.toBlob(res,'image/jpeg',.94));if(!shot)return;
   pendingCaptures++;cameraCaption.textContent=`已拍 ${pages.length+pendingCaptures} 張，繼續換下一張`;
   captureQueue=captureQueue.then(async()=>{try{pages.push(await processImage(shot,mode));render()}catch(e){toast('有一張處理失敗，沒有加入')}finally{pendingCaptures--;if(liveStream)cameraCaption.textContent=`已拍 ${pages.length+pendingCaptures} 張，繼續換下一張`}});
+}
+function guideCrop(){
+  const vr=viewer.getBoundingClientRect(),gr=guide.getBoundingClientRect(),scale=Math.max(vr.width/live.videoWidth,vr.height/live.videoHeight),visibleW=vr.width/scale,visibleH=vr.height/scale,ox=(live.videoWidth-visibleW)/2,oy=(live.videoHeight-visibleH)/2;
+  const x=Math.max(0,ox+(gr.left-vr.left)/scale),y=Math.max(0,oy+(gr.top-vr.top)/scale),w=Math.min(live.videoWidth-x,gr.width/scale),h=Math.min(live.videoHeight-y,gr.height/scale);return{x,y,w,h}
 }
 function stopLiveCamera(){
   if(liveStream)liveStream.getTracks().forEach(t=>t.stop());liveStream=null;live.srcObject=null;viewer.classList.remove('live','flash');controls.classList.remove('camera-running');cameraCaption.textContent=pendingCaptures?'照片仍在背景處理，完成後會出現在下方':'按快門可再開啟連拍鏡頭';render();toast(`這批目前 ${pages.length+pendingCaptures} 張`);
