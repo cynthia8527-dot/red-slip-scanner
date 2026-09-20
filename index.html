@@ -21,10 +21,10 @@
     .export{position:fixed;z-index:10;bottom:0;left:0;right:0;background:linear-gradient(transparent,#101116 18%);padding:22px max(16px,calc((100vw - 720px)/2 + 16px)) max(14px,env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr;gap:10px}.export .btn{padding:15px 10px}.toast{position:fixed;left:50%;bottom:95px;transform:translateX(-50%) translateY(20px);opacity:0;background:#f7f7fa;color:#17191f;padding:10px 14px;border-radius:999px;font-weight:700;font-size:.85rem;transition:.2s;z-index:30;pointer-events:none}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
     .busy{position:fixed;inset:0;background:#08090dcc;display:none;place-items:center;z-index:40;text-align:center}.busy.show{display:grid}.spinner{width:42px;height:42px;border:4px solid #ffffff33;border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:auto auto 12px}@keyframes spin{to{transform:rotate(360deg)}}
     @media(min-width:600px){.grid{grid-template-columns:repeat(5,1fr)}}@media(orientation:landscape){.viewer{aspect-ratio:4/3}}
-  </style>
+  .homeMini{display:inline-block;margin:0 0 10px;color:var(--muted);text-decoration:none;font-size:.7rem;font-weight:700;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px 8px;line-height:1.2}\n  </style>
 </head>
 <body>
-<main class="app">
+<main class="app">\n    <a class="homeMini" href="https://cynthia8527-dot.github.io/red-slip-viewer/">← 工具首頁</a>
   <header class="top"><div class="title"><div class="logo">單</div><h1>紅單掃描器</h1></div><div class="privacy">只在這台裝置處理</div></header>
   <section class="settings effect-settings"><div class="settings-row"><strong>影像效果</strong><div class="seg" role="group" aria-label="影像效果"><button data-mode="color">原色</button><button class="active" data-mode="scan">掃描</button><button data-mode="bw">黑白</button></div></div></section>
   <section id="viewer" class="viewer empty"><video id="live" autoplay playsinline muted></video><img id="preview" alt="最新掃描頁"><div id="scanGuide" class="scan-guide"><span>找不到紙邊時依此框裁切</span></div><canvas id="detectOverlay" class="detect-overlay"></canvas><div id="counter" class="count">0 張</div><div class="badge">不會自動刪頁</div></section>
