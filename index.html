@@ -19,6 +19,7 @@
     .effect-settings{margin:0 0 10px;padding:9px 12px}.secondary-settings .auto-row{margin-top:0;padding-top:0;border-top:0}.viewer{aspect-ratio:4/3}.shooting .app{padding-top:8px;padding-bottom:20px}.shooting .viewer{width:min(100%,78dvh);margin-inline:auto}.shooting .export{display:none}.shooting .camera-controls{min-height:90px}.shooting .capture{width:68px;height:68px}.shooting .hint{display:none}
     .pages-head{display:flex;justify-content:space-between;align-items:end;margin:24px 2px 10px}.pages-head h2{font-size:1rem;margin:0}.pages-head span{color:var(--muted);font-size:.8rem}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.thumb{position:relative;aspect-ratio:3/4;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}.thumb img{width:100%;height:100%;object-fit:cover}.thumb span{position:absolute;bottom:6px;left:6px;background:#101116d9;border-radius:999px;padding:3px 7px;font-size:.75rem}.thumb button{position:absolute;top:5px;right:5px;width:29px;height:29px;border:0;border-radius:50%;background:#101116d9;color:white}.empty-list{grid-column:1/-1;text-align:center;color:var(--muted);padding:24px 0;font-size:.9rem}
     .export{position:fixed;z-index:10;bottom:0;left:0;right:0;background:linear-gradient(transparent,#101116 18%);padding:22px max(16px,calc((100vw - 720px)/2 + 16px)) max(14px,env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr;gap:10px}.export .btn{padding:15px 10px}.toast{position:fixed;left:50%;bottom:95px;transform:translateX(-50%) translateY(20px);opacity:0;background:#f7f7fa;color:#17191f;padding:10px 14px;border-radius:999px;font-weight:700;font-size:.85rem;transition:.2s;z-index:30;pointer-events:none}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    .pdf-download{margin:12px 0;padding:12px;background:var(--panel2);border-radius:12px}.pdf-download p{overflow-wrap:anywhere;margin:0 0 8px;font-size:.85rem}.pdf-download .btn{width:100%;min-height:44px}#pdfResults h2{font-size:1rem}#pdfResultsSummary{font-size:.85rem;color:var(--muted)}
     .busy{position:fixed;inset:0;background:#08090dcc;display:none;place-items:center;z-index:40;text-align:center}.busy.show{display:grid}.spinner{width:42px;height:42px;border:4px solid #ffffff33;border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:auto auto 12px}@keyframes spin{to{transform:rotate(360deg)}}
     @media(min-width:600px){.grid{grid-template-columns:repeat(5,1fr)}}@media(orientation:landscape){.viewer{aspect-ratio:4/3}}
   .homeMini{display:inline-block;margin:0 0 10px;color:var(--muted);text-decoration:none;font-size:.7rem;font-weight:700;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px 8px;line-height:1.2}\n  </style>
@@ -41,11 +42,20 @@
     <p class="hint">偵測到紙張時會顯示綠色外框並自動拉正；找不到才依黃色虛線框裁切。影像效果只套用在接下來拍攝的照片。</p>
   </section>
   <div class="pages-head"><h2>這一批</h2><span>點右上角可刪單張</span></div><section id="grid" class="grid"><div class="empty-list">拍第一張後會顯示在這裡</div></section>
+  <section id="pdfResults" class="settings" hidden aria-labelledby="pdfResultsTitle" aria-live="polite">
+    <h2 id="pdfResultsTitle">已完成的 PDF（上次成功批次）</h2>
+    <p id="pdfResultsSummary"></p>
+    <div id="pdfDownloads"></div>
+    <button id="pdfZipDownload" class="btn">下載全部 PDF 壓縮檔（可選）</button>
+    <p class="hint">逐份下載 PDF 後可直接傳回聊天，不用解壓縮。ZIP 可能超過 5 MB。這裡保留的是上次製作完成的批次；若增刪照片，請重新製作。關閉或重新整理前請先下載。</p>
+  </section>
 </main>
 <footer class="export"><button id="zipBtn" class="btn" disabled>下載 JPG 壓縮檔</button><button id="pdfBtn" class="btn primary" disabled>下載 PDF</button></footer>
-<div id="toast" class="toast"></div><div id="busy" class="busy"><div><div class="spinner"></div><strong id="busyText">處理中…</strong></div></div>
+<div id="toast" class="toast"></div><div id="busy" class="busy"><div><div class="spinner"></div><strong id="busyText">處理中…</strong><button id="cancelExport" class="btn" hidden>取消製作</button></div></div>
 <script>
-const $=s=>document.querySelector(s), pages=[]; let mode='scan', pickerMode='camera', liveStream=null, captureQueue=Promise.resolve(), pendingCaptures=0, detectTimer=null, stableFrames=0, missingFrames=0, changedFrames=0, previousQuad=null, lastDetectedQuad=null, lastShotQuad=null, autoArmed=true, captureInProgress=false;
+const $=s=>document.querySelector(s), pages=[]; let exportJob=null;
+const PDF_MAX_BYTES=5_000_000;
+$('#cancelExport').onclick=()=>{if(exportJob)exportJob.cancelled=true}; let mode='scan', pickerMode='camera', liveStream=null, captureQueue=Promise.resolve(), pendingCaptures=0, detectTimer=null, stableFrames=0, missingFrames=0, changedFrames=0, previousQuad=null, lastDetectedQuad=null, lastShotQuad=null, autoArmed=true, captureInProgress=false;
 const camera=$('#camera'), viewer=$('#viewer'), preview=$('#preview'), live=$('#live'), guide=$('#scanGuide'), overlay=$('#detectOverlay'), grid=$('#grid'), busy=$('#busy'), busyText=$('#busyText'), controls=$('#cameraControls'), cameraCaption=$('#cameraCaption'), autoCapture=$('#autoCapture');live.className='fx-scan';
 $('#shoot').onclick=()=>liveStream?captureLive(false):startLiveCamera();
 $('#doneCamera').onclick=stopLiveCamera;
@@ -78,7 +88,7 @@ function stopDetection(){clearTimeout(detectTimer);detectTimer=null;resetAutoCap
 function stopLiveCamera(){
   stopDetection();if(liveStream)liveStream.getTracks().forEach(t=>t.stop());liveStream=null;live.srcObject=null;document.body.classList.remove('shooting');viewer.classList.remove('live','flash','paper-found');controls.classList.remove('camera-running');cameraCaption.textContent=pendingCaptures?'照片仍在背景處理，完成後會出現在下方':'按快門可再開啟連拍鏡頭';render();toast(`這批目前 ${pages.length+pendingCaptures} 張`);
 }
-async function processImage(file,fx,guideFallback=false){const bmp=await createImageBitmap(file,{imageOrientation:'from-image'});const max=1800,scale=Math.min(1,max/Math.max(bmp.width,bmp.height)),w=Math.round(bmp.width*scale),h=Math.round(bmp.height*scale),raw=document.createElement('canvas');raw.width=w;raw.height=h;const r=raw.getContext('2d',{willReadFrequently:true});r.drawImage(bmp,0,0,w,h);bmp.close();const quad=detectPaperQuad(raw);let out;if(quad)out=warpPaper(raw,quad);else{const box=safeFallbackBox(w,h,guideFallback),x=Math.max(0,Math.round(box.x)),y=Math.max(0,Math.round(box.y)),cw=Math.min(w-x,Math.round(box.w)),ch=Math.min(h-y,Math.round(box.h));out=document.createElement('canvas');out.width=cw;out.height=ch;out.getContext('2d').drawImage(raw,x,y,cw,ch,0,0,cw,ch)}const c=out.getContext('2d',{willReadFrequently:true});if(fx!=='color')enhance(c,out.width,out.height,fx);const blob=await new Promise(res=>out.toBlob(res,'image/jpeg',.94));return{blob,url:URL.createObjectURL(blob),w:out.width,h:out.height,fx,detected:!!quad}}
+async function processImage(file,fx,guideFallback=false){const bmp=await createImageBitmap(file,{imageOrientation:'from-image'});const max=1800,scale=Math.min(1,max/Math.max(bmp.width,bmp.height)),w=Math.round(bmp.width*scale),h=Math.round(bmp.height*scale),raw=document.createElement('canvas');raw.width=w;raw.height=h;const r=raw.getContext('2d',{willReadFrequently:true});r.drawImage(bmp,0,0,w,h);bmp.close();const quad=detectPaperQuad(raw);let out;if(quad)out=warpPaper(raw,quad);else{const box=safeFallbackBox(w,h,guideFallback),x=Math.max(0,Math.round(box.x)),y=Math.max(0,Math.round(box.y)),cw=Math.min(w-x,Math.round(box.w)),ch=Math.min(h-y,Math.round(box.h));out=document.createElement('canvas');out.width=cw;out.height=ch;out.getContext('2d').drawImage(raw,x,y,cw,ch,0,0,cw,ch)}const c=out.getContext('2d',{willReadFrequently:true});if(fx!=='color')enhance(c,out.width,out.height,fx);const blob=await new Promise(res=>out.toBlob(res,'image/jpeg',.94));return{originalBlob:file,blob,url:URL.createObjectURL(blob),w:out.width,h:out.height,fx,detected:!!quad}}
 function safeFallbackBox(w,h,fromGuide=false){if(w>h*1.15)return{x:0,y:0,w,h};const margin=fromGuide?.04:.02,gw=w*(1-margin*2),gh=Math.min(h,gw/1.55);return{x:w*margin,y:Math.max(0,(h-gh)/2),w:gw,h:gh}}
 function detectPaperQuad(source){
   const max=320,sw=Math.min(max,source.width),sh=Math.max(1,Math.round(source.height*sw/source.width)),c=document.createElement('canvas');c.width=sw;c.height=sh;const cx=c.getContext('2d',{willReadFrequently:true});cx.drawImage(source,0,0,sw,sh);const d=cx.getImageData(0,0,sw,sh).data,raw=new Uint8Array(sw*sh),expanded=new Uint8Array(sw*sh),mask=new Uint8Array(sw*sh),hist=new Uint32Array(256);let samples=0;
@@ -112,14 +122,93 @@ function homography(from,to){const A=[],b=[];for(let i=0;i<4;i++){const u=from[i
 function solve(A,b){for(let i=0;i<8;i++){let p=i;for(let r=i+1;r<8;r++)if(Math.abs(A[r][i])>Math.abs(A[p][i]))p=r;[A[i],A[p]]=[A[p],A[i]];[b[i],b[p]]=[b[p],b[i]];const div=A[i][i]||1e-9;for(let c=i;c<8;c++)A[i][c]/=div;b[i]/=div;for(let r=0;r<8;r++)if(r!==i){const f=A[r][i];for(let c=i;c<8;c++)A[r][c]-=f*A[i][c];b[r]-=f*b[i]}}return b}
 function findPaper(ctx,w,h){const S=120,sw=Math.round(w/Math.max(w,h)*S),sh=Math.round(h/Math.max(w,h)*S),c=document.createElement('canvas');c.width=sw;c.height=sh;c.getContext('2d').drawImage(ctx.canvas,0,0,sw,sh);const d=c.getContext('2d').getImageData(0,0,sw,sh).data;let border=[];for(let x=0;x<sw;x++){for(const y of [0,sh-1]){let i=(y*sw+x)*4;border.push((d[i]+d[i+1]+d[i+2])/3)}}for(let y=1;y<sh-1;y++){for(const x of [0,sw-1]){let i=(y*sw+x)*4;border.push((d[i]+d[i+1]+d[i+2])/3)}}border.sort((a,b)=>a-b);const bg=border[Math.floor(border.length/2)],threshold=Math.max(24,Math.min(70,Math.abs(bg-128)*.32+28));let minX=sw,minY=sh,maxX=0,maxY=0,n=0;for(let y=2;y<sh-2;y++)for(let x=2;x<sw-2;x++){let i=(y*sw+x)*4,v=(d[i]+d[i+1]+d[i+2])/3;if(Math.abs(v-bg)>threshold){minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y);n++}}if(n<sw*sh*.12||maxX-minX<sw*.45||maxY-minY<sh*.45)return{x:0,y:0,w,h};const sx=w/sw,sy=h/sh;return{x:minX*sx,y:minY*sy,w:(maxX-minX+1)*sx,h:(maxY-minY+1)*sy}}
 function enhance(ctx,w,h,fx){const img=ctx.getImageData(0,0,w,h),d=img.data,hist=new Uint32Array(256);let samples=0;for(let i=0;i<d.length;i+=16){hist[Math.round(.299*d[i]+.587*d[i+1]+.114*d[i+2])]++;samples++}const percentile=p=>{let n=0,target=samples*p;for(let i=0;i<256;i++){n+=hist[i];if(n>=target)return i}return 255},lo=percentile(.06),hi=percentile(.96),range=Math.max(85,hi-lo),scale=Math.min(fx==='bw'?1.32:1.16,Math.max(.88,(218/range)*(fx==='bw'?1.08:1))),offset=Math.max(-38,Math.min(26,242-hi*scale));for(let i=0;i<d.length;i+=4){let r=d[i]*scale+offset,g=d[i+1]*scale+offset,b=d[i+2]*scale+offset;if(fx==='bw'){const y=.299*r+.587*g+.114*b,v=clamp((y-128)*1.06+136);d[i]=d[i+1]=d[i+2]=v}else{const gray=.299*r+.587*g+.114*b,sat=1.07;d[i]=clamp(gray+(r-gray)*sat);d[i+1]=clamp(gray+(g-gray)*sat);d[i+2]=clamp(gray+(b-gray)*sat)}}ctx.putImageData(img,0,0)}const clamp=(v,min=0,max=255)=>Math.max(min,Math.min(max,v));
-function render(){const n=pages.length;$('#counter').textContent=(n+pendingCaptures)+' 張';viewer.classList.toggle('has',!!n);viewer.classList.toggle('empty',!n&&!liveStream);if(n)preview.src=pages[n-1].url;grid.innerHTML=n?'':'<div class="empty-list">拍第一張後會顯示在這裡</div>';pages.forEach((p,i)=>{const el=document.createElement('div');el.className='thumb';el.innerHTML=`<img src="${p.url}" alt="第 ${i+1} 張"><span>${i+1}</span><button aria-label="刪除第 ${i+1} 張">×</button>`;el.querySelector('button').onclick=()=>remove(i);grid.appendChild(el)});['undoBtn','clearBtn','zipBtn','pdfBtn'].forEach(id=>$('#'+id).disabled=!n)}
-function remove(i){URL.revokeObjectURL(pages[i].url);pages.splice(i,1);render();toast('已刪除 1 張')}
-$('#undoBtn').onclick=()=>{if(pages.length)remove(pages.length-1)};$('#clearBtn').onclick=()=>{if(!pages.length||!confirm(`確定清空這 ${pages.length} 張？尚未下載的內容會消失。`))return;pages.forEach(p=>URL.revokeObjectURL(p.url));pages.length=0;render();toast('已清空')};
-$('#zipBtn').onclick=async()=>{showBusy('製作 JPG 壓縮檔…');const files=[];for(let i=0;i<pages.length;i++)files.push({name:`紅單_${String(i+1).padStart(3,'0')}.jpg`,data:new Uint8Array(await pages[i].blob.arrayBuffer())});download(new Blob([makeZip(files)],{type:'application/zip'}),fileName('紅單','zip'));hideBusy()};
-$('#pdfBtn').onclick=async()=>{showBusy('製作 PDF…');const items=[];for(const p of pages)items.push({data:new Uint8Array(await p.blob.arrayBuffer()),w:p.w,h:p.h});download(new Blob([makePdf(items)],{type:'application/pdf'}),fileName('紅單','pdf'));hideBusy()};
+function render(){const n=pages.length;$('#counter').textContent=(n+pendingCaptures)+' 張';viewer.classList.toggle('has',!!n);viewer.classList.toggle('empty',!n&&!liveStream);if(n)preview.src=pages[n-1].url;grid.innerHTML=n?'':'<div class="empty-list">拍第一張後會顯示在這裡</div>';pages.forEach((p,i)=>{const el=document.createElement('div');el.className='thumb';el.innerHTML=`<img src="${p.url}" alt="第 ${i+1} 張"><span>${i+1}</span><button aria-label="刪除第 ${i+1} 張">×</button>`;el.querySelector('button').disabled=!!exportJob;el.querySelector('button').onclick=()=>remove(i);grid.appendChild(el)});['undoBtn','clearBtn','zipBtn','pdfBtn'].forEach(id=>$('#'+id).disabled=!n||!!exportJob||!!pendingCaptures)}
+function remove(i){if(exportJob)return;URL.revokeObjectURL(pages[i].url);pages.splice(i,1);render();toast('已刪除 1 張')}
+$('#undoBtn').onclick=()=>{if(pages.length)remove(pages.length-1)};$('#clearBtn').onclick=()=>{if(exportJob||!pages.length||!confirm(`確定清空這 ${pages.length} 張？尚未下載的內容會消失。`))return;pages.forEach(p=>URL.revokeObjectURL(p.url));pages.length=0;render();toast('已清空')};
+$('#zipBtn').onclick=async()=>{
+  if(exportJob||!pages.length)return;
+  if(pendingCaptures||captureInProgress||liveStream){toast('請結束拍攝並等照片處理完成再下載');return}
+  const snapshot=pages.slice(),job={cancelled:false};exportJob=job;render();showBusy('製作 JPG 壓縮檔…');
+  try{const files=[];for(let i=0;i<snapshot.length;i++)files.push({name:`紅單_${String(i+1).padStart(3,'0')}.jpg`,data:new Uint8Array(await snapshot[i].blob.arrayBuffer())});download(makeZip(files),fileName('紅單','zip'))}
+  catch(e){toast('JPG 製作失敗，照片仍保留，請重試')}
+  finally{exportJob=null;hideBusy();render()}
+};
+$('#pdfBtn').onclick=async()=>{
+  if(exportJob||!pages.length)return;
+  if(pendingCaptures||captureInProgress||liveStream){toast('請結束拍攝並等照片處理完成再下載');return}
+  const snapshot=pages.slice(),job={cancelled:false};exportJob=job;
+  $('#cancelExport').hidden=false;render();showBusy('製作 PDF…');
+  try{
+    const files=await splitPdfPages(snapshot,job);
+    checkExportCancelled(job);
+    const base=fileName('紅單','pdf').replace(/\.pdf$/,'');
+    const results=files.map((f,i)=>({...f,name:`${base}_${String(i+1).padStart(3,'0')}_第${f.start}至${f.end}頁.pdf`}));
+    showPdfDownloads(results,snapshot.length,base);
+    if(results.length===1)download(results[0].blob,results[0].name);
+    else{toast(`已準備 ${results.length} 份 PDF，請在下方逐份下載`);$('#pdfResults').scrollIntoView({behavior:'smooth',block:'start'})}
+  }catch(e){toast(e.name==='AbortError'?'已取消製作，照片仍保留':`PDF 製作失敗：${e.message||'請重試'}。照片仍保留，可下載 JPG`)}
+  finally{exportJob=null;$('#cancelExport').hidden=true;hideBusy();render()}
+};
+function showPdfDownloads(files,total,base){
+  const list=$('#pdfDownloads');list.replaceChildren();
+  $('#pdfResultsSummary').textContent=`已完成批次：${total} 頁，共 ${files.length} 份；每份 PDF 不超過 5,000,000 bytes。`;
+  files.forEach((f,i)=>{
+    const row=document.createElement('div');row.className='pdf-download';
+    const name=document.createElement('p');name.textContent=f.name;
+    const detail=document.createElement('p');detail.textContent=`第 ${f.start}–${f.end} 頁 · ${f.blob.size.toLocaleString('en-US')} bytes（${(f.blob.size/1_000_000).toFixed(3)} MB）`;
+    const button=document.createElement('button');button.className='btn primary';button.dataset.pdfDownload=String(i+1);button.textContent=`下載第 ${i+1} 份 PDF`;
+    button.onclick=()=>download(f.blob,f.name);
+    row.append(name,detail,button);list.appendChild(row);
+  });
+  const zipButton=$('#pdfZipDownload');zipButton.disabled=false;let makingZip=false;
+  zipButton.onclick=async()=>{
+    if(makingZip)return;makingZip=true;zipButton.disabled=true;
+    try{
+      const entries=[];for(const f of files)entries.push({name:f.name,data:new Uint8Array(await f.blob.arrayBuffer())});
+      download(makeZip(entries),base+'_PDF分檔.zip');
+    }catch(e){toast('ZIP 製作失敗，仍可逐份下載 PDF，照片仍保留')}
+    finally{makingZip=false;zipButton.disabled=false}
+  };
+  $('#pdfResults').hidden=false;
+}
+function checkExportCancelled(job){if(job.cancelled)throw new DOMException('已取消','AbortError')}
+async function fitPdfPage(page,number,job){
+  const original={data:new Uint8Array(await page.blob.arrayBuffer()),w:page.w,h:page.h};
+  checkExportCancelled(job);
+  if(makePdf([original]).size<=PDF_MAX_BYTES)return original;
+  // Only an oversized single page is re-encoded. Keep its pixel dimensions.
+  const bitmap=await createImageBitmap(page.blob);
+  try{
+    const canvas=document.createElement('canvas');canvas.width=page.w;canvas.height=page.h;
+    canvas.getContext('2d').drawImage(bitmap,0,0,page.w,page.h);
+    for(const quality of [.92,.88,.84]){
+      checkExportCancelled(job);
+      const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',quality));
+      if(!blob)throw new Error(`第 ${number} 頁壓縮失敗，照片仍保留`);
+      const item={data:new Uint8Array(await blob.arrayBuffer()),w:page.w,h:page.h};
+      if(makePdf([item]).size<=PDF_MAX_BYTES)return item;
+    }
+  }finally{bitmap.close()}
+  throw new Error(`第 ${number} 頁仍超過 5 MB；為保留字跡，請另下載 JPG 或重新拍攝。照片仍保留`);
+}
+async function splitPdfPages(snapshot,job={cancelled:false}){
+  const files=[];let batch=[],start=1;
+  for(let i=0;i<snapshot.length;i++){
+    await new Promise(resolve=>setTimeout(resolve,0));checkExportCancelled(job);
+    busyText.textContent=`製作第 ${i+1}／${snapshot.length} 頁…`;
+    const item=await fitPdfPage(snapshot[i],i+1,job);
+    const candidate=makePdf([...batch,item]);
+    if(candidate.size>PDF_MAX_BYTES){files.push({blob:makePdf(batch),start,end:i});batch=[item];start=i+1}
+    else batch.push(item);
+  }
+  checkExportCancelled(job);
+  if(batch.length)files.push({blob:makePdf(batch),start,end:snapshot.length});
+  if(files.some(f=>f.blob.size>PDF_MAX_BYTES))throw new Error('PDF 超過 5 MB，照片仍保留');
+  return files;
+}
 function fileName(base,ext){const d=new Date(),z=n=>String(n).padStart(2,'0');return`${base}_${d.getFullYear()}${z(d.getMonth()+1)}${z(d.getDate())}_${pages.length}張.${ext}`}
 function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),30000);toast('下載完成，記得確認檔案頁數')}
-function makePdf(imgs){const enc=new TextEncoder(),parts=[],offs=[0];let pos=0;const add=x=>{let u=typeof x==='string'?enc.encode(x):x;parts.push(u);pos+=u.length};add('%PDF-1.4\n');const count=2+imgs.length*3;function obj(n,body){offs[n]=pos;add(`${n} 0 obj\n`);add(body);add('\nendobj\n')}obj(1,'<< /Type /Catalog /Pages 2 0 R >>');const kids=imgs.map((_,i)=>`${3+i*3} 0 R`).join(' ');obj(2,`<< /Type /Pages /Kids [${kids}] /Count ${imgs.length} >>`);imgs.forEach((im,i)=>{const p=3+i*3,x=p+1,c=p+2,land=im.w>im.h,W=land?842:595,H=land?595:842,sc=Math.min(W/im.w,H/im.h),dw=im.w*sc,dh=im.h*sc,dx=(W-dw)/2,dy=(H-dh)/2;obj(p,`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /XObject << /Im${i} ${x} 0 R >> >> /Contents ${c} 0 R >>`);offs[x]=pos;add(`${x} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${im.data.length} >>\nstream\n`);add(im.data);add('\nendstream\nendobj\n');const cmd=`q ${dw.toFixed(2)} 0 0 ${dh.toFixed(2)} ${dx.toFixed(2)} ${dy.toFixed(2)} cm /Im${i} Do Q`;obj(c,`<< /Length ${cmd.length} >>\nstream\n${cmd}\nendstream`) });const start=pos;add(`xref\n0 ${count+1}\n0000000000 65535 f \n`);for(let i=1;i<=count;i++)add(String(offs[i]).padStart(10,'0')+' 00000 n \n');add(`trailer\n<< /Size ${count+1} /Root 1 0 R >>\nstartxref\n${start}\n%%EOF`);return new Blob(parts)}
+function makePdf(imgs){const enc=new TextEncoder(),parts=[],offs=[0];let pos=0;const add=x=>{let u=typeof x==='string'?enc.encode(x):x;parts.push(u);pos+=u.length};add('%PDF-1.4\n');const count=2+imgs.length*3;function obj(n,body){offs[n]=pos;add(`${n} 0 obj\n`);add(body);add('\nendobj\n')}obj(1,'<< /Type /Catalog /Pages 2 0 R >>');const kids=imgs.map((_,i)=>`${3+i*3} 0 R`).join(' ');obj(2,`<< /Type /Pages /Kids [${kids}] /Count ${imgs.length} >>`);imgs.forEach((im,i)=>{const p=3+i*3,x=p+1,c=p+2,land=im.w>im.h,W=land?842:595,H=land?595:842,sc=Math.min(W/im.w,H/im.h),dw=im.w*sc,dh=im.h*sc,dx=(W-dw)/2,dy=(H-dh)/2;obj(p,`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /XObject << /Im${i} ${x} 0 R >> >> /Contents ${c} 0 R >>`);offs[x]=pos;add(`${x} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${im.data.length} >>\nstream\n`);add(im.data);add('\nendstream\nendobj\n');const cmd=`q ${dw.toFixed(2)} 0 0 ${dh.toFixed(2)} ${dx.toFixed(2)} ${dy.toFixed(2)} cm /Im${i} Do Q`;obj(c,`<< /Length ${cmd.length} >>\nstream\n${cmd}\nendstream`) });const start=pos;add(`xref\n0 ${count+1}\n0000000000 65535 f \n`);for(let i=1;i<=count;i++)add(String(offs[i]).padStart(10,'0')+' 00000 n \n');add(`trailer\n<< /Size ${count+1} /Root 1 0 R >>\nstartxref\n${start}\n%%EOF`);return new Blob(parts,{type:'application/pdf'})}
 function crc32(u){let c=-1;for(const b of u){c^=b;for(let k=0;k<8;k++)c=(c>>>1)^((c&1)?0xedb88320:0)}return(c^-1)>>>0}function le(n,l){const u=new Uint8Array(l);for(let i=0;i<l;i++)u[i]=(n>>>(8*i))&255;return u}function makeZip(files){const e=new TextEncoder(),out=[],central=[];let off=0;for(const f of files){const n=e.encode(f.name),crc=crc32(f.data),head=new Uint8Array([...le(0x04034b50,4),...le(20,2),...le(0x800,2),...le(0,2),...le(0,2),...le(0,2),...le(crc,4),...le(f.data.length,4),...le(f.data.length,4),...le(n.length,2),...le(0,2),...n]);out.push(head,f.data);central.push(new Uint8Array([...le(0x02014b50,4),...le(20,2),...le(20,2),...le(0x800,2),...le(0,2),...le(0,2),...le(0,2),...le(crc,4),...le(f.data.length,4),...le(f.data.length,4),...le(n.length,2),...le(0,2),...le(0,2),...le(0,2),...le(0,2),...le(0,4),...le(off,4),...n]));off+=head.length+f.data.length}const cs=central.reduce((a,b)=>a+b.length,0);return new Blob([...out,...central,new Uint8Array([...le(0x06054b50,4),...le(0,2),...le(0,2),...le(files.length,2),...le(files.length,2),...le(cs,4),...le(off,4),...le(0,2)])])}
 let tt;function toast(s){const t=$('#toast');t.textContent=s;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2200)}function showBusy(s){busyText.textContent=s;busy.classList.add('show')}function hideBusy(){busy.classList.remove('show')}
 window.addEventListener('pagehide',()=>{if(liveStream)liveStream.getTracks().forEach(t=>t.stop())});

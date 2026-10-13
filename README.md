@@ -13,3 +13,23 @@
 開啟 `index.html`，拍攝或選取紅單，完成後下載 PDF 或 JPG 壓縮檔。關閉或重新整理頁面前，請先確認檔案已下載。
 
 目前為手機測試版，之後可延伸成電腦 USB 鏡頭與鍵盤快門版本。
+
+## PDF 自動分檔
+
+- 每份 PDF 依實際檔案大小限制為 **5,000,000 bytes**（十進位 5 MB）。
+- 依原頁序連續分檔，不刪除或判斷重複頁。一般頁面直接嵌入現有 JPG bytes，不再次壓縮。
+- 每份都有獨立下載按鈕，顯示檔名、全批頁碼範圍及實際 bytes／十進位 MB，可直接逐份傳回聊天。一份 PDF 仍會直接下載；多份不會自動下載 ZIP。另提供「下載全部 PDF 壓縮檔（可選）」；ZIP 本身可能超過 5 MB。
+- 單頁過大才依序嘗試 JPEG 品質 .92、.88、.84，維持像素尺寸；仍超標就停止，提示另下載 JPG 或重拍，不強行降低解析度。
+- 製作期間鎖定重複匯出與刪除；可取消 PDF 製作。全部製作成功才開始下載。取消／失敗保留當批影像與 JPG 下載。
+- 原始輸入 Blob 留在頁面記憶體，匯出壓縮只改副本。相簿原檔不會改寫；現有 JPG ZIP 仍是掃描處理後影像。重新整理或關閉頁面仍會失去當批資料，沒有新增永久儲存。
+- 手寫清晰度仍需使用者在自己的裝置確認；本地測試只使用合成頁面。
+
+## 回歸測試
+
+`node --test tests/pdf-export.cjs`
+
+需既有 Node.js、Playwright、Chromium、Poppler 的 `pdfinfo` 與 `pdftoppm`；本次使用環境現有工具，沒有安裝依賴。Chromium 路徑預設 `/usr/bin/chromium`，可由 `CHROMIUM_PATH` 指定。
+
+測試在瀏覽器執行实际下載 handler，截取下載內容以檢查 PDF／ZIP。合成 JPEG 使用尾端填充製造邊界，非真實帳務資料。涵蓋 4,999,999／5,000,000／超標、頁序及每頁 JPEG bytes、單頁壓縮／無法縮小、重複點擊、取消重試、讀取失敗、拍攝未完成、既有 JPG 下載。Poppler 獨立解析並將 PDF 解碼成圖片。另以 390×844 手機尺寸測試真正的 Chromium 下載事件、逐份存檔與可選 ZIP，並測相簿加入 → 處理 → PDF 下載完整流程。Safari、Android Chrome 與聊天附件選取仍需實機驗收。取消或失敗保留上次成功批次的下載入口，介面明示增刪照片後需重新製作。
+
+測試截圖及合成 PDF／manifest 預設存於系統暫存目錄的 `red-slip-scanner-artifacts`，可用 `SCANNER_ARTIFACT_DIR` 指定。此次驗證命令：`SCANNER_ARTIFACT_DIR=/workspace node --test tests/pdf-export.cjs`。
