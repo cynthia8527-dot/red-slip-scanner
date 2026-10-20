@@ -1,4 +1,4 @@
-import {PUBLIC_CLIENT_ID,SCOPES} from './policy.mjs';
+import {PUBLIC_CLIENT_ID,SCOPES,FOLDER_ID} from './policy.mjs';
 // Credentials live only in this closure. No storage, server session, refresh or silent renewal.
 export function makeMemoryLogin({enabled=false,gis,verify,onStatus=()=>{},clock=()=>Date.now(),schedule=setTimeout,cancel=clearTimeout}={}){
  let token=null,deadline=0,timer=null,client=null,busy=false,generation=0;
@@ -11,7 +11,7 @@ export function makeMemoryLogin({enabled=false,gis,verify,onStatus=()=>{},clock=
     token=response.access_token;deadline=clock()+Math.min(900000,Number(response.expires_in)*1000);if(timer!==null)cancel(timer);timer=schedule(()=>clear('expired'),deadline-clock());
     const result=await verify();if(run!==generation)return;
     if(!result?.authenticated||!result.allowed)throw Error('identity_not_verified');
-    onStatus('authenticated',{subject:result.subject,expiresAt:deadline});
+    onStatus('authenticated',{subject:result.subject,expiresAt:deadline,folderId:FOLDER_ID,folderVerified:result.folderVerified===true&&result.folderId===FOLDER_ID});
    }catch{if(run===generation)clear('not_authenticated');}finally{if(run===generation)busy=false;}},
    error_callback:()=>{if(preparedRun===generation)clear('popup_closed');}});return true;
  }

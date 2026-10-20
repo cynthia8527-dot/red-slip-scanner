@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#17191f">
-  <title>紅單掃描器</title>
-  <meta name="description" content="不漏張、不上傳的本機紅單掃描工具">
+  <title>文件掃描器</title>
+  <meta name="description" content="可本機掃描與下載，登入確認後手動存入私人掃描文件資料夾">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23e84b58'/%3E%3Cpath d='M18 12h22l8 8v32H18z' fill='white'/%3E%3Cpath d='M40 12v10h8M24 31h18M24 39h18M24 47h12' fill='none' stroke='%23e84b58' stroke-width='4'/%3E%3C/svg%3E">
   <style>
     :root{color-scheme:dark;--bg:#101116;--panel:#1a1c23;--panel2:#232630;--line:#343844;--text:#f6f7fb;--muted:#a9afbd;--accent:#ff5966;--accent2:#ff8790;--ok:#67d69a;--radius:20px}
     *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif;min-height:100dvh}button,input,select{font:inherit}button{cursor:pointer}
     .app{max-width:720px;margin:auto;padding:16px 16px 120px}.top{display:flex;align-items:center;justify-content:space-between;margin:2px 0 16px}.title{display:flex;align-items:center;gap:10px}.logo{width:36px;height:36px;border-radius:10px;background:var(--accent);display:grid;place-items:center;font-weight:900}.title h1{font-size:1.25rem;margin:0}.privacy{font-size:.8rem;color:var(--muted)}
-    .viewer{position:relative;background:#08090c;border:1px solid var(--line);border-radius:24px;overflow:hidden;aspect-ratio:3/4;display:grid;place-items:center}.viewer.empty:before{content:"橫式紅單放進畫面\A偵測到會顯示綠色紙邊";white-space:pre;text-align:center;color:var(--muted);line-height:1.8}.viewer.live:before{display:none}.viewer img,.viewer video{width:100%;height:100%;display:none}.viewer img{object-fit:contain}.viewer video{object-fit:cover;transition:filter .18s}.viewer video.fx-color{filter:none}.viewer video.fx-scan{filter:brightness(1.04) contrast(1.08) saturate(1.02)}.viewer video.fx-bw{filter:grayscale(1) brightness(1.02) contrast(1.16)}.viewer.has:not(.live) img,.viewer.live video{display:block}.scan-guide{display:none;position:absolute;width:92%;height:auto;aspect-ratio:1.55;left:4%;top:50%;transform:translateY(-50%);border:2px dashed #ffd36b;border-radius:10px;box-shadow:0 0 0 999px #00000029;pointer-events:none;z-index:1}.viewer.live:not(.paper-found) .scan-guide{display:block}.scan-guide span{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);white-space:nowrap;background:#101116cc;color:#ffe9a8;border-radius:999px;padding:6px 10px;font-size:.78rem}.detect-overlay{display:none;position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1}.viewer.live .detect-overlay{display:block}.viewer.flash:after{content:"";position:absolute;inset:0;background:white;animation:flash .16s ease-out forwards;pointer-events:none;z-index:3}@keyframes flash{from{opacity:.7}to{opacity:0}}.count{position:absolute;top:12px;left:12px;background:#101116d9;border:1px solid #ffffff22;border-radius:999px;padding:7px 11px;font-size:.85rem;z-index:2}.badge{position:absolute;top:12px;right:12px;background:#101116d9;border:1px solid #ffffff22;border-radius:999px;padding:7px 11px;font-size:.8rem;color:var(--ok);z-index:2}
+    .viewer{position:relative;background:#08090c;border:1px solid var(--line);border-radius:24px;overflow:hidden;aspect-ratio:3/4;display:grid;place-items:center}.viewer.empty:before{content:"文件放進畫面\A偵測到會顯示綠色紙邊";white-space:pre;text-align:center;color:var(--muted);line-height:1.8}.viewer.live:before{display:none}.viewer img,.viewer video{width:100%;height:100%;display:none}.viewer img{object-fit:contain}.viewer video{object-fit:cover;transition:filter .18s}.viewer video.fx-color{filter:none}.viewer video.fx-scan{filter:brightness(1.04) contrast(1.08) saturate(1.02)}.viewer video.fx-bw{filter:grayscale(1) brightness(1.02) contrast(1.16)}.viewer.has:not(.live) img,.viewer.live video{display:block}.scan-guide{display:none;position:absolute;width:92%;height:auto;aspect-ratio:1.55;left:4%;top:50%;transform:translateY(-50%);border:2px dashed #ffd36b;border-radius:10px;box-shadow:0 0 0 999px #00000029;pointer-events:none;z-index:1}.viewer.live:not(.paper-found) .scan-guide{display:block}.scan-guide span{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);white-space:nowrap;background:#101116cc;color:#ffe9a8;border-radius:999px;padding:6px 10px;font-size:.78rem}.detect-overlay{display:none;position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1}.viewer.live .detect-overlay{display:block}.viewer.flash:after{content:"";position:absolute;inset:0;background:white;animation:flash .16s ease-out forwards;pointer-events:none;z-index:3}@keyframes flash{from{opacity:.7}to{opacity:0}}.count{position:absolute;top:12px;left:12px;background:#101116d9;border:1px solid #ffffff22;border-radius:999px;padding:7px 11px;font-size:.85rem;z-index:2}.badge{position:absolute;top:12px;right:12px;background:#101116d9;border:1px solid #ffffff22;border-radius:999px;padding:7px 11px;font-size:.8rem;color:var(--ok);z-index:2}
     .camera-controls{display:flex;align-items:center;justify-content:center;gap:18px;min-height:108px}.capture{width:76px;height:76px;border-radius:50%;border:6px solid #fff;background:var(--accent);box-shadow:0 0 0 3px #ffffff22;flex:none}.capture:active{transform:scale(.94)}.done-camera{display:none;min-width:108px}.camera-running .done-camera{display:block}.camera-caption{text-align:center;color:var(--muted);font-size:.86rem;margin:-8px 0 14px}.camera-running .camera-caption{color:var(--ok)}#camera{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
     .toolbar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.btn{border:1px solid var(--line);color:var(--text);background:var(--panel);padding:12px 8px;border-radius:14px;font-weight:650}.btn:disabled{opacity:.38;cursor:not-allowed}.btn.danger{color:#ff9aa1}.btn.primary{background:var(--accent);border-color:var(--accent)}
     .settings{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px}.settings-row{display:flex;align-items:center;justify-content:space-between;gap:12px}.seg{display:flex;background:#101116;border-radius:12px;padding:3px}.seg button{border:0;background:transparent;color:var(--muted);padding:8px 12px;border-radius:9px}.seg button.active{background:var(--panel2);color:white}.hint{font-size:.8rem;color:var(--muted);margin:10px 0 0;line-height:1.5}
@@ -26,11 +26,11 @@
 </head>
 <body>
 <main class="app">\n    <a class="homeMini" href="https://cynthia8527-dot.github.io/red-slip-viewer/">← 工具首頁</a>
-  <header class="top"><div class="title"><div class="logo">單</div><h1>紅單掃描器</h1></div><div class="privacy">只在這台裝置處理</div></header>
+  <header class="top"><div class="title"><div class="logo">掃</div><h1>文件掃描器</h1></div><div class="privacy">只在這台裝置處理</div></header>
   <section class="settings effect-settings"><div class="settings-row"><strong>影像效果</strong><div class="seg" role="group" aria-label="影像效果"><button data-mode="color">原色</button><button class="active" data-mode="scan">掃描</button><button data-mode="bw">黑白</button></div></div></section>
   <section id="viewer" class="viewer empty"><video id="live" autoplay playsinline muted></video><img id="preview" alt="最新掃描頁"><div id="scanGuide" class="scan-guide"><span>找不到紙邊時依此框裁切</span></div><canvas id="detectOverlay" class="detect-overlay"></canvas><div id="counter" class="count">0 張</div><div class="badge">不會自動刪頁</div></section>
   <input id="camera" type="file" accept="image/*" capture="environment" multiple>
-  <div id="cameraControls" class="camera-controls"><button id="shoot" class="capture" aria-label="開啟連拍鏡頭或拍攝紅單"></button><button id="doneCamera" class="btn done-camera">完成拍攝</button></div>
+  <div id="cameraControls" class="camera-controls"><button id="shoot" class="capture" aria-label="開啟連拍鏡頭或拍攝文件"></button><button id="doneCamera" class="btn done-camera">完成拍攝</button></div>
   <div id="cameraCaption" class="camera-caption">按快門開啟鏡頭，之後可以連續拍攝</div>
   <div class="toolbar">
     <button id="importBtn" class="btn">從相簿加入</button>
@@ -129,7 +129,7 @@ $('#zipBtn').onclick=async()=>{
   if(exportJob||!pages.length)return;
   if(pendingCaptures||captureInProgress||liveStream){toast('請結束拍攝並等照片處理完成再下載');return}
   const snapshot=pages.slice(),job={cancelled:false};exportJob=job;render();showBusy('製作 JPG 壓縮檔…');
-  try{const files=[];for(let i=0;i<snapshot.length;i++)files.push({name:`紅單_${String(i+1).padStart(3,'0')}.jpg`,data:new Uint8Array(await snapshot[i].blob.arrayBuffer())});download(makeZip(files),fileName('紅單','zip'))}
+  try{const files=[];for(let i=0;i<snapshot.length;i++)files.push({name:`掃描_${String(i+1).padStart(3,'0')}.jpg`,data:new Uint8Array(await snapshot[i].blob.arrayBuffer())});download(makeZip(files),fileName('掃描','zip'))}
   catch(e){toast('JPG 製作失敗，照片仍保留，請重試')}
   finally{exportJob=null;hideBusy();render()}
 };
@@ -141,7 +141,7 @@ $('#pdfBtn').onclick=async()=>{
   try{
     const files=await splitPdfPages(snapshot,job);
     checkExportCancelled(job);
-    const base=fileName('紅單','pdf').replace(/\.pdf$/,'');
+    const base=fileName('掃描','pdf').replace(/\.pdf$/,'');
     const results=files.map((f,i)=>({...f,name:`${base}_${String(i+1).padStart(3,'0')}_第${f.start}至${f.end}頁.pdf`}));
     showPdfDownloads(results,snapshot.length,base);
     if(results.length===1)download(results[0].blob,results[0].name);

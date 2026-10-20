@@ -1,7 +1,7 @@
 /* Offline candidate. No OAuth, network implementation, tokens, or production adapter. */
 (function(root,factory){if(typeof module==='object')module.exports=factory();else root.ScannerUpload=factory();})(globalThis,()=>{
  'use strict';
- const FOLDER='1s_MzTWzVHmMt9UQfsvGxn_FG3x-LKpr2',LIMIT=5000000;
+ const FOLDER='1zNWtMpQRhKAB1Shg0qHUe-Y2oBcQ_WPd',LIMIT=5000000;
  async function digest(blob){return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await blob.arrayBuffer())),n=>n.toString(16).padStart(2,'0')).join('');}
  function memoryJournal(){const rows=new Map();return {get:k=>rows.get(k),set:(k,v)=>rows.set(k,structuredClone(v))};}
  function browserJournal(storage){return {get:k=>{const s=storage.getItem('scanner-upload-v1:'+k);return s?JSON.parse(s):undefined;},set:(k,v)=>storage.setItem('scanner-upload-v1:'+k,JSON.stringify(v))};}
